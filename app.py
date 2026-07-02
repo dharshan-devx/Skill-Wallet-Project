@@ -1,13 +1,22 @@
+import os
 from flask import Flask, render_template, request
 import numpy as np
 import pickle
+from waitress import serve
 
 app = Flask(__name__)
 
+# Absolute paths for robust loading
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'model.pkl')
+SCALER_PATH = os.path.join(BASE_DIR, 'scaler.pkl')
+
 # Load the trained model and scaler
 try:
-    model = pickle.load(open('model.pkl', 'rb'))
-    scaler = pickle.load(open('scaler.pkl', 'rb'))
+    with open(MODEL_PATH, 'rb') as f:
+        model = pickle.load(f)
+    with open(SCALER_PATH, 'rb') as f:
+        scaler = pickle.load(f)
 except Exception as e:
     print(f"Error loading model/scaler: {e}")
     model = None
@@ -36,10 +45,9 @@ def result():
             for col in FEATURES:
                 val = request.form.get(col)
                 if val is None or val.strip() == '':
-                    # default to 0 if not provided
-                    input_features.append(0.0)
-                else:
-                    input_features.append(float(val))
+                    # Strict validation: prevent defaulting to 0.0
+                    raise ValueError(f"Missing required input for feature: {col}")
+                input_features.append(float(val))
             
             # Convert to numpy array and reshape for prediction
             features_array = np.array(input_features).reshape(1, -1)
@@ -54,7 +62,7 @@ def result():
             if model:
                 prediction = model.predict(features_scaled)[0]
             else:
-                prediction = -1 # Error state
+                raise RuntimeError("Model is not loaded properly.")
                 
             # Determine status
             if prediction == 1:
@@ -64,8 +72,13 @@ def result():
                 
             return render_template('result.html', prediction=prediction, status=status)
             
+        except ValueError as ve:
+            # Handle bad input from the user specifically
+            return render_template('result.html', prediction=-1, status=f"Input Error: {str(ve)}")
         except Exception as e:
+            # Handle other runtime errors
             return render_template('result.html', prediction=-1, status=f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    print("Starting production Waitress server on http://0.0.0.0:5000")
+    serve(app, host='0.0.0.0', port=5000)
