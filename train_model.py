@@ -2,7 +2,6 @@
 Train the Credit Card Approval Prediction model.
 Run this script once to generate model.pkl and scaler.pkl before starting the app.
 """
-import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
