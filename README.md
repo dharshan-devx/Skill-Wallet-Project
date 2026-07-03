@@ -1,84 +1,103 @@
 # Credit Card Approval Prediction
 
-## Project Overview
-This project is a complete end-to-end Machine Learning web application for predicting Credit Card Approvals. 
-It takes an uploaded Jupyter Notebook's machine learning logic and transforms it into a production-ready Flask application. 
-The application analyzes 30 different financial features to make real-time approval decisions.
+A complete end-to-end Machine Learning web application for predicting Credit Card Approvals.
+Built with Flask and a Random Forest classifier, styled with the **SmartBridge** interface.
+
+---
 
 ## Features
-- **Machine Learning Integration**: Uses a trained Random Forest classifier with `StandardScaler` preprocessing to evaluate inputs.
-- **Dynamic Form Generation**: The prediction form dynamically handles all features used in the notebook.
-- **Modern UI**: Features a clean, responsive, and animated glassmorphism user interface built with Bootstrap 5 and custom CSS.
-- **Flask Backend**: A lightweight, robust Flask server handling the model loading, scaling, and prediction logic.
+- **SmartBridge UI** — Clean form with dropdowns matching real credit card application fields
+- **Random Forest Model** — Trained on 14 demographic and financial features
+- **Result Page** — Shows Approved / Rejected with model confidence percentage
+- **Auto Model Training** — If pkl files are missing, `start.bat` trains the model automatically
+
+---
 
 ## Folder Structure
 ```
-Credit-Card-Approval/
+Skill-Wallet-Project/
 │
 ├── app.py                  # Main Flask application
+├── train_model.py          # Model training script (run once to generate pkl files)
+├── model.pkl               # Trained Random Forest model
+├── scaler.pkl              # StandardScaler for preprocessing
 ├── requirements.txt        # Python dependencies
-├── model.pkl               # Saved Machine Learning Model
-├── scaler.pkl              # Saved Preprocessing Scaler
-├── README.md               # Project Documentation
+├── Procfile                # Render deployment config
+├── render.yaml             # Render one-click deploy config
+├── start.bat               # Windows local launcher
+├── README.md               # Project documentation
 │
-├── templates/              # HTML Templates
-│      home.html            # Landing page
-│      index.html           # Prediction form
-│      result.html          # Prediction result page
+├── templates/
+│   ├── index.html          # SmartBridge prediction form
+│   └── result.html         # Prediction result page
 │
-├── static/                 # Static Assets
-│      css/
-│          style.css        # Custom styles
-│      images/              # (Optional) Image assets
-│
-└── Credit Card Approval Prediction.ipynb  # Original ML Notebook
+└── Credit Card Approval Prediction.ipynb   # Original ML Notebook
 ```
 
-## Installation
+---
 
-1. **Clone the repository or navigate to the directory**:
-   ```bash
-   cd "Credit Card Approval"
-   ```
+## Run Locally (Windows)
 
-2. **Create a Virtual Environment**:
-   ```bash
-   python -m venv venv
-   ```
+Just double-click `start.bat` — it handles everything automatically:
+1. Creates virtual environment
+2. Installs dependencies
+3. Trains model if missing
+4. Opens browser at http://127.0.0.1:5000
 
-3. **Activate the Virtual Environment**:
-   - On Windows:
-     ```bash
-     venv\Scripts\activate
-     ```
-   - On macOS/Linux:
-     ```bash
-     source venv/bin/activate
-     ```
+Or manually:
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python train_model.py      # only needed once
+python app.py
+```
 
-4. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+---
 
-## Run Application
+## Deploy on Render
 
-1. **Start the Flask server**:
-   ```bash
-   python app.py
-   ```
+### Option A — One-click (using render.yaml)
+1. Push this repo to GitHub
+2. Go to [render.com](https://render.com) → **New** → **Blueprint**
+3. Connect your GitHub repo → Render auto-reads `render.yaml` → Deploy
 
-2. **Open your browser** and navigate to:
-   ```text
-   http://127.0.0.1:5000
-   ```
+### Option B — Manual setup
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repo
+3. Fill in these settings:
 
-## Screenshots
-![Home Page Placeholder](placeholder_home.png)
-*Modern Hero Section*
+| Setting | Value |
+|---|---|
+| **Runtime** | Python 3 |
+| **Build Command** | `pip install -r requirements.txt && python train_model.py` |
+| **Start Command** | `gunicorn app:app` |
+| **Plan** | Free |
 
-![Prediction Form Placeholder](placeholder_form.png)
-*Dynamic Feature Input Form*
+4. Click **Deploy** — your app will be live in ~2 minutes!
 
-![Result Page Placeholder](placeholder_result.png)
-*Prediction Result Card*
+---
+
+## Input Fields
+
+| Field | Type | Example |
+|---|---|---|
+| Gender | Dropdown | MALE / FEMALE |
+| Own Car | Dropdown | YES / NO |
+| Own Realstate | Dropdown | YES / NO |
+| Total Annual Income | Number | 200000 |
+| Type of Income | Dropdown | Working, Pensioner, etc. |
+| Education | Dropdown | Higher education, etc. |
+| Family Status | Dropdown | Married, Single, etc. |
+| Type of Housing | Dropdown | House / apartment, etc. |
+| Days Birth | Number (age in years) | 35 |
+| Days Employed | Number (negative = employed) | -10 |
+| Family Members | Number | 3 |
+| EMI Paid Off | Number | 10 |
+| EMI of Past Dues | Number | 0 |
+| Number of Loans | Number | 2 |
+
+## Values for Approved Result
+- Annual Income **> 100,000**
+- Own Realstate = **YES**
+- EMI of Past Dues = **0**

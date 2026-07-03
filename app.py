@@ -2,7 +2,6 @@ import os
 from flask import Flask, render_template, request
 import numpy as np
 import pickle
-from waitress import serve
 
 app = Flask(__name__)
 
@@ -119,5 +118,6 @@ def result():
                                    status=f"Error: {str(e)}", confidence=0)
 
 if __name__ == '__main__':
-    print("Starting production Waitress server on http://0.0.0.0:5000")
-    serve(app, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Starting Flask server on http://0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port)

@@ -1,8 +1,4 @@
-Flask
+Flask==3.0.3
 numpy
-pandas
 scikit-learn
-joblib
-matplotlib
-seaborn
-waitress
+gunicorn
