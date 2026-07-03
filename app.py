@@ -17,67 +17,106 @@ try:
         model = pickle.load(f)
     with open(SCALER_PATH, 'rb') as f:
         scaler = pickle.load(f)
+    print("Model and scaler loaded successfully.")
 except Exception as e:
     print(f"Error loading model/scaler: {e}")
     model = None
     scaler = None
 
-# Feature columns exactly as in the notebook
-FEATURES = ['Time'] + [f'V{i}' for i in range(1, 29)] + ['Amount']
+# Encoding maps matching the training script
+GENDER_MAP = {'FEMALE': 0, 'MALE': 1}
+BINARY_MAP = {'NO': 0, 'YES': 1}
+
+INCOME_TYPE_MAP = {
+    'Working': 0,
+    'Commercial associate': 1,
+    'Pensioner': 2,
+    'State servant': 3,
+    'Student': 4
+}
+
+EDUCATION_MAP = {
+    'Lower secondary': 0,
+    'Secondary / secondary special': 1,
+    'Incomplete higher': 2,
+    'Higher education': 3,
+    'Academic degree': 4
+}
+
+FAMILY_STATUS_MAP = {
+    'Single / not married': 0,
+    'Married': 1,
+    'Civil marriage': 2,
+    'Widow': 3,
+    'Separated': 4
+}
+
+HOUSING_MAP = {
+    'Rented apartment': 0,
+    'House / apartment': 1,
+    'Municipal apartment': 2,
+    'With parents': 3,
+    'Co-op apartment': 4,
+    'Office apartment': 5
+}
 
 @app.route('/')
 def home():
-    """Render the home page."""
-    return render_template('home.html')
-
-@app.route('/predict')
-def predict():
-    """Render the prediction form."""
-    return render_template('index.html', features=FEATURES)
+    """Render the home/prediction form."""
+    return render_template('index.html')
 
 @app.route('/result', methods=['POST'])
 def result():
-    """Process form data, scale, predict, and render result."""
+    """Process form data, encode, scale, predict, and render result."""
     if request.method == 'POST':
         try:
-            # Extract features from form exactly in the order of FEATURES
-            input_features = []
-            for col in FEATURES:
-                val = request.form.get(col)
-                if val is None or val.strip() == '':
-                    # Strict validation: prevent defaulting to 0.0
-                    raise ValueError(f"Missing required input for feature: {col}")
-                input_features.append(float(val))
-            
-            # Convert to numpy array and reshape for prediction
-            features_array = np.array(input_features).reshape(1, -1)
-            
-            # Scale numerical values as in notebook
+            gender      = GENDER_MAP[request.form['gender']]
+            own_car     = BINARY_MAP[request.form['own_car']]
+            own_realty  = BINARY_MAP[request.form['own_realty']]
+            income      = float(request.form['income'])
+            income_type = INCOME_TYPE_MAP[request.form['income_type']]
+            education   = EDUCATION_MAP[request.form['education']]
+            family_status = FAMILY_STATUS_MAP[request.form['family_status']]
+            housing     = HOUSING_MAP[request.form['housing']]
+            days_birth  = float(request.form['days_birth'])
+            days_employed = float(request.form['days_employed'])
+            family_members = float(request.form['family_members'])
+            emi_paid_off = float(request.form['emi_paid_off'])
+            emi_pastdues = float(request.form['emi_pastdues'])
+            num_loans   = float(request.form['num_loans'])
+
+            features = np.array([[
+                gender, own_car, own_realty, income, income_type, education,
+                family_status, housing, days_birth, days_employed,
+                family_members, emi_paid_off, emi_pastdues, num_loans
+            ]])
+
             if scaler:
-                features_scaled = scaler.transform(features_array)
-            else:
-                features_scaled = features_array
-                
-            # Predict
+                features = scaler.transform(features)
+
             if model:
-                prediction = model.predict(features_scaled)[0]
+                prediction = model.predict(features)[0]
+                probability = model.predict_proba(features)[0]
+                confidence = round(float(max(probability)) * 100, 1)
             else:
                 raise RuntimeError("Model is not loaded properly.")
-                
-            # Determine status
+
             if prediction == 1:
                 status = "Credit Card Approved"
             else:
                 status = "Credit Card Rejected"
-                
-            return render_template('result.html', prediction=prediction, status=status)
-            
+
+            return render_template('result.html',
+                                   prediction=int(prediction),
+                                   status=status,
+                                   confidence=confidence)
+
         except ValueError as ve:
-            # Handle bad input from the user specifically
-            return render_template('result.html', prediction=-1, status=f"Input Error: {str(ve)}")
+            return render_template('result.html', prediction=-1,
+                                   status=f"Input Error: {str(ve)}", confidence=0)
         except Exception as e:
-            # Handle other runtime errors
-            return render_template('result.html', prediction=-1, status=f"Error occurred: {str(e)}")
+            return render_template('result.html', prediction=-1,
+                                   status=f"Error: {str(e)}", confidence=0)
 
 if __name__ == '__main__':
     print("Starting production Waitress server on http://0.0.0.0:5000")
